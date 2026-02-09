@@ -794,11 +794,6 @@ def safe_edit_message_text(chat_id, message_id, text, parse_mode=None, reply_mar
     return bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text, parse_mode=parse_mode, reply_markup=reply_markup)
 
 # --- Start bot ---
-if __name__ == '__main__':
-    password = input("Enter password: ")
-    if password != "123":
-        print("Wrong password")
-    else:
         logger.info("Starting bot...")
         # Clear Telegram update queue before starting
         clear_telegram_updates()
