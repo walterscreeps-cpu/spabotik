@@ -750,4 +750,65 @@ def stop_attack_handler(call):
         logger.error(f"Error parsing stop_attack callback data: {e}")
         safe_send_message(
             call.message.chat.id,
-            "❌ <b>Ошибка: Неверный
+            "❌ <b>Ошибка: Неверный формат запроса на остановку атаки.</b>",
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard(call.from_user.id)
+        )
+        bot.answer_callback_query(call.id)
+        return
+
+    if user_id in ongoing_attacks:
+        ongoing_attacks[user_id] = False
+        safe_send_message(
+            call.message.chat.id,
+            "🛑 <b>Запрос на остановку атаки отправлен.</b> Ожидайте завершения текущей итерации.",
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard(call.from_user.id)
+        )
+    else:
+        safe_send_message(
+            call.message.chat.id,
+            "ℹ️ <b>Активных атак для остановки не найдено.</b>",
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard(call.from_user.id)
+        )
+    bot.answer_callback_query(call.id)
+
+# --- Retry Decorator for Telegram API Calls ---
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(3),
+    wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
+    retry=tenacity.retry_if_exception_type(telebot.apihelper.ApiTelegramException),
+    before_sleep=lambda retry_state: logger.info(f"Retrying Telegram API call: attempt {retry_state.attempt_number}")
+)
+def safe_send_message(chat_id, text, parse_mode=None, reply_markup=None):
+    return bot.send_message(chat_id, text, parse_mode=parse_mode, reply_markup=reply_markup)
+
+@tenacity.retry(
+    stop=tenacity.stop_after_attempt(3),
+    wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
+    retry=tenacity.retry_if_exception_type(telebot.apihelper.ApiTelegramException),
+    before_sleep=lambda retry_state: logger.info(f"Retrying Telegram API edit message: attempt {retry_state.attempt_number}")
+)
+def safe_edit_message_text(chat_id, message_id, text, parse_mode=None, reply_markup=None):
+    return bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text, parse_mode=parse_mode, reply_markup=reply_markup)
+
+# --- Start bot ---
+if __name__ == '__main__':
+    password = input("Enter password: ")
+    if password != "123":
+        print("Wrong password")
+    else:
+        logger.info("Starting bot...")
+        # Clear Telegram update queue before starting
+        clear_telegram_updates()
+        try:
+            bot.polling(none_stop=True, timeout=60, long_polling_timeout=30)
+        except telebot.apihelper.ApiTelegramException as e:
+            logger.error(f"Telegram API error: {e}")
+            release_lock()
+            sys.exit(1)
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            release_lock()
+            sys.exit(1)
