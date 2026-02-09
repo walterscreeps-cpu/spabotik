@@ -1,0 +1,5 @@
+pyTelegramBotAPI==4.21.0
+fake-useragent==1.5.1
+requests==2.31.0
+tenacity==8.2.3
+psutil==5.9.8
