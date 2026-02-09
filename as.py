@@ -209,7 +209,7 @@ def update_ticket_status(ticket_id, status):
 def get_support_ticket(ticket_id):
     """Retrieve a support ticket's data from the database."""
     try:
-        conn = sqlite3.connect('/data/invites.db')
+        conn = sqlite3.connect('invites.db')
         cursor = conn.cursor()
         cursor.execute('SELECT user_id, message, status FROM support_tickets WHERE ticket_id = ?', (ticket_id,))
         result = cursor.fetchone()
